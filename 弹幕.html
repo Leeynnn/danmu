@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<style>
+    #container{
+        position: relative;
+        margin: 100px auto;
+        width: 1200px;
+        height: 600px;
+        border: 1px solid #e5e5e5;
+        overflow: hidden;
+    }
+</style>
+<body>
+    <div id="container"></div>
+    <script src="https://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+    <script>
+        var Barrage = function(container){
+            // 获取弹幕显示容器，容器为jQuery对象，传值为 #id 或者 .class
+            var _container = $(container);
+            if (!container) return;
+            // 顶部底部弹幕最多行数设置为26行
+            var WORDS = "abcdefghijklmnopqrstuvwxyz";
+            // 容器宽度
+            var WIDTH = parseInt(_container.css("width"));
+            // 容器高度
+            var HEIGHT = parseInt(_container.css("height"));
+            // 弹幕样式
+            var barrageStyle = {
+                "display": "block",
+                "visibility": "hidden",
+                "position": "absolute",
+                "height": "30px",
+                "line-height": "30px",
+                "font-size": "20px",
+                "font-weight": "bold",
+                "white-space": "nowrap"
+            };
+            // 普通弹幕数量统计
+            var barrageCount = 0;
+            // 容器可容纳弹幕行数
+            var barrageStep = parseInt(HEIGHT / 40) - 1;
+            // 容器可容纳定位弹幕的行数
+            var barragePositionStep = barrageStep % 2 == 0 ? (barrageStep / 2) + 1 : parseInt(barrageStep / 2);
+            // 抽出的往容器里添加定位弹幕的方法
+            var barragePositionFun = function (barrage) {
+                _container.append(barrage);
+                var _width = barrage.offsetWidth;
+                var _left = (WIDTH - _width) / 2;
+                if (_left < 0) {
+                    _left = 0;
+                }
+                $(barrage).css("left",  _left);
+                $(barrage).css("visibility", "visible");
+                // 定位弹幕存在5秒后销毁
+                setTimeout(function(){
+                    $(this).remove();
+                }.bind(barrage), 5000);
+            }
+            // 添加弹幕主方法
+            var barrageFun = function (data) {
+                for (var i in data) {
+                    if (!data[i].type) {
+                        // 普通弹幕执行方法
+                        var _row = barrageCount % barrageStep;
+                        var _barrage = document.createElement("span");
+                        $(_barrage).css(barrageStyle);
+                        _barrage.className = "mugua_" + _row;
+                        $(_barrage).css("top", _row * 40);
+                        $(_barrage).css("color", data[i].color);
+                        $(_barrage).text(data[i].context);
+                        var _left = 0;
+                        var _lastDom = parseInt($($(".mugua_"+_row)[$(".mugua_"+_row).length - 1]).css("left"));
+                        if (isNaN(_lastDom)) {
+                            _lastDom = 0;
+                        }
+                        if (_lastDom >= WIDTH) {
+                            _left = _lastDom + $(".mugua_"+_row)[$(".mugua_"+_row).length - 1].offsetWidth + 200;
+                        } else {
+                            _left = WIDTH;
+                        }
+                        _container.append(_barrage);
+                        $(_barrage).css("width", _barrage.offsetWidth);
+                        $(_barrage).css("left", _left);
+                        $(_barrage).css("visibility", "visible");
+                        $(_barrage).animate({
+                            left: -_barrage.offsetWidth
+                        }, 10000 + _left * 5, "linear", function(){
+                            $(this).remove();
+                        }.bind(_barrage));
+                        barrageCount++;
+                    } else {
+                        // 定位弹幕执行方法
+                        var _barrage = document.createElement("span");
+                        $(_barrage).css(barrageStyle);
+                        $(_barrage).css("z-index", 100);
+                        _barrage.className = "mugua_" + data[i].type;
+                        $(_barrage).css("color", data[i].color);
+                        $(_barrage).text(data[i].context);
+                        var _len = $(".mugua_" + data[i].type).length;
+                        var barrageCheck = (function(){
+                            var str = "";
+                            for (var i = 0; i < barragePositionStep; i++) {
+                                str += WORDS.substr(i,1);
+                            }
+                            return str;
+                        })();
+                        if (_len > 0 && _len < barragePositionStep) {
+                            for (var j = 0; j < barragePositionStep; j ++) {
+                                var _dom = parseInt($($(".mugua_" + data[i].type)[j]).css(data[i].type));
+                                if (isNaN(_dom)) {
+                                    var _domStep = WORDS.indexOf(barrageCheck.substring(0, 1));
+                                    $(_barrage).css(data[i].type,  _domStep * 40);
+                                    barragePositionFun(_barrage);
+                                    break;
+                                } else {
+                                    barrageCheck = barrageCheck.replace(WORDS.substr(_dom / 40, 1), "");
+                                }
+                            }
+                        } else if (_len == 0) {
+                            $(_barrage).css(data[i].type,  0);
+                            barragePositionFun(_barrage);
+                        }
+                    }            
+                }
+            };
+            return barrageFun;
+        };
+
+        var data = [
+            {
+                context: "哈哈哈哈哈哈哈2333333",
+                color: "red",
+                type: "top"
+            },{
+                context: "笑死我了啊",
+                color: "yellow",
+                type: null
+            },{
+                context: "这是不是撒子",
+                color: "blue",
+                type: "top"
+            },{
+                context: "偷偷发个弹幕",
+                color: "gray",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼这功能真牛逼这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能这功能真牛逼这功能真牛逼真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真这功能真牛逼这功能真牛逼牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能这功能真牛逼这功能真牛逼这功能真牛逼这功能真牛逼这功能真牛逼真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "看我看我这里",
+                color: "black",
+                type: null
+            },{
+                context: "偷偷发一条弹幕",
+                color: "orange",
+                type: "bottom"
+            },{
+                context: "应该没人看到我",
+                color: "red",
+                type: null
+            },{
+                context: "我擦，加班好累啊",
+                color: "orange",
+                type: "bottom"
+            },{
+                context: "日你哥",
+                color: "green",
+                type: null
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },
+            {
+                context: "哈哈哈哈哈哈哈2333333",
+                color: "red",
+                type: "top"
+            },{
+                context: "笑死我了啊",
+                color: "yellow",
+                type: null
+            },{
+                context: "这是不是撒子",
+                color: "blue",
+                type: "top"
+            },{
+                context: "偷偷发个弹幕",
+                color: "gray",
+                type: null
+            },{
+                context: "这功能真牛逼",
+                color: "green",
+                type: null
+            },{
+                context: "看我看我这里",
+                color: "black",
+                type: null
+            },{
+                context: "偷偷发一条弹幕",
+                color: "orange",
+                type: "bottom"
+            },{
+                context: "应该没人看到我",
+                color: "red",
+                type: null
+            },{
+                context: "我擦，加班好累啊",
+                color: "orange",
+                type: "bottom"
+            },{
+                context: "日你哥",
+                color: "green",
+                type: null
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            },{
+                context: "吃鸡开外挂",
+                color: "blue",
+                type: "bottom"
+            }
+        ];
+        var barrage = Barrage("#container");
+        barrage(data);
+    </script>
+</body>
+</html>
